@@ -1,0 +1,355 @@
+# Jalan-Kehidupann
+Game tentang kehidupan, player bebas menentukan jalannya masing masing
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jalan Hidup: Dari Miskin Menjadi Taipan & Politisi</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            max-width: 750px;
+            margin: 40px auto;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        h1 {
+            color: #ffb74d;
+            text-align: center;
+            font-size: 24px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+        }
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            background: #1e1e1e;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .stat-item {
+            font-size: 14px;
+        }
+        .box {
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            min-height: 100px;
+        }
+        button {
+            background-color: #3f51b5;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin: 5px 0;
+            width: 100%;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            text-align: left;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background-color: #5c6bc0;
+        }
+        button.danger {
+            background-color: #c62828;
+        }
+        button.danger:hover {
+            background-color: #e53935;
+        }
+        button.good {
+            background-color: #2e7d32;
+        }
+        button.good:hover {
+            background-color: #43a047;
+        }
+        button.wealth {
+            background-color: #ff8f00;
+        }
+        button.wealth:hover {
+            background-color: #ffa000;
+        }
+        #log {
+            font-size: 13px;
+            color: #aaa;
+            background: #181818;
+            padding: 10px;
+            border-radius: 4px;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Jalan Hidup: Dari Miskin Menjadi Taipan</h1>
+
+    <div class="stats-container">
+        <div class="stat-item">👤 Usia: <span id="age">20</span> Tahun</div>
+        <div class="stat-item">💰 Kekayaan: Rp <span id="money">500.000</span></div>
+        <div class="stat-item">❤️ Kesehatan: <span id="health">100</span>%</div>
+        <div class="stat-item">⚖️ Moralitas: <span id="morality">50</span></div>
+        <div class="stat-item" style="grid-column: span 2;">🏠 Properti: <span id="property">Belum punya</span></div>
+        <div class="stat-item" style="grid-column: span 2;">🏛️ Status Politik: <span id="politics">Rakyat Jelata</span></div>
+    </div>
+
+    <div class="box">
+        <p id="story-text">Anda memulai hidup di sebuah kamar kos sempit di pinggiran kota dengan modal pas-pasan. Masa depan Anda sepenuhnya ada di tangan Anda. Apa yang ingin Anda lakukan?</p>
+        <div id="choices-container"></div>
+    </div>
+
+    <h3>Riwayat Hidup:</h3>
+    <div id="log">Game dimulai. Selamat berjuang!</div>
+
+    <script>
+        let game = {
+            age: 20,
+            money: 500000,
+            health: 100,
+            morality: 50, 
+            hasHouse: false,
+            hasBuilding: false,
+            politicalStatus: "Rakyat Jelata", // Rakyat Jelata -> Anggota Dewan -> Menteri / Pejabat Tinggi
+            gameOver: false
+        };
+
+        function updateDisplay() {
+            document.getElementById("age").innerText = game.age;
+            document.getElementById("money").innerText = game.money.toLocaleString('id-ID');
+            document.getElementById("health").innerText = game.health;
+            
+            let moralStatus = "Netral";
+            if (game.morality > 70) moralStatus = "Dermawan Baik Hati";
+            else if (game.morality > 40) moralStatus = "Netral / Biasa";
+            else if (game.morality > 15) moralStatus = "Egois / Meragukan";
+            else moralStatus = "Penjahat / Koruptor Kejam";
+            
+            document.getElementById("morality").innerText = `${game.morality} (${moralStatus})`;
+
+            let propText = "Belum punya";
+            if (game.hasBuilding) propText = "Gedung Komersial & Rumah Mewah";
+            else if (game.hasHouse) propText = "Rumah Layak Huni";
+            document.getElementById("property").innerText = propText;
+
+            document.getElementById("politics").innerText = game.politicalStatus;
+        }
+
+        function logMessage(msg) {
+            let logDiv = document.getElementById("log");
+            logDiv.innerHTML += `<br>• ${msg}`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function setStory(text, choices) {
+            document.getElementById("story-text").innerText = text;
+            let container = document.getElementById("choices-container");
+            container.innerHTML = "";
+
+            if (game.gameOver) {
+                let btn = document.createElement("button");
+                btn.innerText = "Main Lagi dari Awal";
+                btn.onclick = resetGame;
+                container.appendChild(btn);
+                return;
+            }
+
+            choices.forEach(choice => {
+                let btn = document.createElement("button");
+                btn.innerText = choice.text;
+                if (choice.className) btn.className = choice.className;
+                btn.onclick = choice.action;
+                container.appendChild(btn);
+            });
+        }
+
+        function checkEndGame() {
+            if (game.health <= 0) {
+                game.gameOver = true;
+                setStory(`Anda meninggal dunia di usia ${game.age} tahun karena kelelahan atau masalah kesehatan yang parah. Perjalanan hidup Anda berakhir.`, []);
+                return true;
+            }
+            if (game.money >= 2000000000) {
+                game.gameOver = true;
+                setStory(`LUAR BIASA! Di usia ${game.age} tahun, kekayaan Anda menembus 2 Miliar Rupiah dan Anda menguasai panggung politik! Anda resmi menjadi Taipan Penguasa Negeri.`, []);
+                return true;
+            }
+            return false;
+        }
+
+        function nextTurn(ageAdd = 1) {
+            game.age += ageAdd;
+            game.health -= 2; 
+
+            // Pasif pendapatan dari properti
+            let passiveIncome = 0;
+            if (game.hasHouse) passiveIncome += 500000;
+            if (game.hasBuilding) passiveIncome += 4000000;
+            if (passiveIncome > 0) {
+                game.money += passiveIncome;
+                logMessage(`Properti Anda menghasilkan pendapatan pasif sebesar Rp ${passiveIncome.toLocaleString('id-ID')}.`);
+            }
+
+            if (checkEndGame()) return;
+            showMainChoice();
+        }
+
+        function showMainChoice() {
+            if (checkEndGame()) return;
+            updateDisplay();
+
+            let choices = [
+                {
+                    text: "💼 Cari Pekerjaan / Karir Legal (Jalur Aman)",
+                    className: "good",
+                    action: () => {
+                        let income = 3000000;
+                        game.money += income;
+                        game.morality += 2;
+                        logMessage(`Bekerja keras secara jujur. Pendapatan bertambah Rp ${income.toLocaleString('id-ID')}.`);
+                        nextTurn();
+                    }
+                },
+                {
+                    text: "🏢 Mulai Bisnis Startup Sendiri (Modal Rp 2 Juta)",
+                    action: () => {
+                        if (game.money < 2000000) {
+                            alert("Modal kurang! Anda butuh minimal Rp 2.000.000.");
+                            showMainChoice();
+                            return;
+                        }
+                        game.money -= 2000000;
+                        if (Math.random() > 0.4) {
+                            let profit = 8000000;
+                            game.money += profit;
+                            logMessage(`Bisnis startup Anda sukses besar! Untung bersih Rp ${profit.toLocaleString('id-ID')}.`);
+                        } else {
+                            logMessage(`Bisnis startup Anda bangkrut. Modal lenyap.`);
+                        }
+                        nextTurn();
+                    }
+                }
+            ];
+
+            // Fitur Membeli Properti
+            if (!game.hasHouse && game.money >= 15000000) {
+                choices.push({
+                    text: "🏠 Beli Rumah Layak Huni (Harga: Rp 15 Juta)",
+                    className: "wealth",
+                    action: () => {
+                        game.money -= 15000000;
+                        game.hasHouse = true;
+                        logMessage("Anda membeli rumah sendiri. Kehidupan mulai stabil dan ada pemasukan pasif.");
+                        showMainChoice();
+                    }
+                });
+            } else if (game.hasHouse && !game.hasBuilding && game.money >= 100000000) {
+                choices.push({
+                    text: "🏢 Beli Gedung Komersial / Ruko (Harga: Rp 100 Juta)",
+                    className: "wealth",
+                    action: () => {
+                        game.money -= 100000000;
+                        game.hasBuilding = true;
+                        logMessage("Anda membeli gedung komersial! Pendapatan pasif melonjak tajam.");
+                        showMainChoice();
+                    }
+                });
+            }
+
+            // Fitur Politik & Korupsi
+            if (game.politicalStatus === "Rakyat Jelata" && game.money >= 50000000) {
+                choices.push({
+                    text: "🏛️ Nyalon Jadi Anggota Dewan/Politisi (Modal Kampanye Rp 50 Juta)",
+                    className: "wealth",
+                    action: () => {
+                        game.money -= 50000000;
+                        game.politicalStatus = "Anggota Dewan Perwakilan";
+                        logMessage("Kampanye Anda berhasil! Anda terpilih menjadi Anggota Dewan.");
+                        showMainChoice();
+                    }
+                });
+            } else if (game.politicalStatus === "Anggota Dewan Perwakilan") {
+                choices.push({
+                    text: "🦹 Lakukan Korupsi Proyek Negara (Risiko Tinggi, Cuan Besar)",
+                    className: "danger",
+                    action: () => {
+                        let corruptMoney = 250000000;
+                        game.money += corruptMoney;
+                        game.morality -= 20;
+                        if (game.morality < 0) game.morality = 0;
+                        logMessage(`Anda menilep anggaran proyek negara! Mendapat Rp ${corruptMoney.toLocaleString('id-ID')}, moral hancur.`);
+                        
+                        // Risiko tertangkap KPK
+                        if (Math.random() < 0.45) {
+                            game.money = Math.floor(game.money / 3);
+                            game.health -= 25;
+                            game.politicalStatus = "Mantan Narapidana Korupsi";
+                            logMessage(`Tertangkap KPK! Anda dijebloskan ke penjara, kekayaan dirampas negara, dan kesehatan mental memburuk.`);
+                        }
+                        nextTurn();
+                    }
+                });
+                if (game.money >= 300000000) {
+                    choices.push({
+                        text: "👑 Suap Partai & Naik Jadi Menteri / Pejabat Tinggi (Modal Rp 300 Juta)",
+                        className: "wealth",
+                        action: () => {
+                            game.money -= 300000000;
+                            game.politicalStatus = "Menteri Kabinet Negara";
+                            logMessage("Anda berhasil menyuap petinggi partai dan diangkat menjadi Menteri.");
+                            showMainChoice();
+                        }
+                    });
+                }
+            }
+
+            // Jalur Gelap Alternatif
+            choices.push({
+                text: "🕵️ Sindikat Kriminal / Penipuan Bawah Tanah",
+                className: "danger",
+                action: () => {
+                    let illegalMoney = 10000000;
+                    game.money += illegalMoney;
+                    game.morality -= 10;
+                    if (game.morality < 0) game.morality = 0;
+                    logMessage(`Aksi kriminal sukses. Mendapat Rp ${illegalMoney.toLocaleString('id-ID')}.`);
+                    if (Math.random() < 0.35) {
+                        game.money = Math.floor(game.money / 2);
+                        game.health -= 15;
+                        logMessage(`Polisi menggerebek markas Anda! Setengah uang disita dan Anda terluka.`);
+                    }
+                    nextTurn();
+                }
+            });
+
+            setStory(`Usia Anda ${game.age}. Status Politik: ${game.politicalStatus}. Apa langkah Anda tahun ini?`, choices);
+        }
+
+        function resetGame() {
+            game = {
+                age: 20,
+                money: 500000,
+                health: 100,
+                morality: 50,
+                hasHouse: false,
+                hasBuilding: false,
+                politicalStatus: "Rakyat Jelata",
+                gameOver: false
+            };
+            logMessage("--- Memulai ulang permainan baru ---");
+            updateDisplay();
+            showMainChoice();
+        }
+
+        updateDisplay();
+        showMainChoice();
+    </script>
+</body>
+</html>
